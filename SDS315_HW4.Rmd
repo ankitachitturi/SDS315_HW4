@@ -1,0 +1,183 @@
+---
+title: "SDS315_HW4"
+output: html_document
+date: "2024-02-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+
+file <- 'ebay.csv'
+ebay <- read.csv(file)
+
+file2 <- 'gas.csv'
+gas <- read.csv(file2)
+
+file3 <- 'pilot.csv'
+pilot <- read.csv(file3)
+
+file4 <- 'class.csv'
+class <- read.csv(file4)
+```
+
+#Problem 1
+
+#A) Gas stations charge more if they lack direct competition in sight
+```{r, echo=FALSE, message=FALSE}
+mean(Price~Competitors, data=gas)
+boot_gas = do(10000)*diffmean(Price~Competitors, data=mosaic::resample(gas))
+confint(boot_gas, level = 0.95)
+```
+Theory A claims that gas stations charge more if they lack direct competition in sight. The difference in price between gas stations depending on if they have or lack direct competition is somewhere between -0.055 and 0.007, which 95% confidence. Additionally, since 0 is within the interval, it is statistically insignificant. Theory A is deemed to be false as it is not supported by the given evidence 
+
+
+#B) The richer the area, the higher the gas prices
+```{r, echo=FALSE, message=FALSE}
+mean(Price~Income, data=gas)
+boot_income = do(10000)*lm(Price~Income, data=mosaic::resample(gas))
+confint(boot_income, level = 0.95)
+```
+Theory B claims that the richer the area, the higher the gas prices. The difference in price of gas between rich and poor areas is somewhere between 0.000000672 and 0.00000177, with 95% confidence. The theory is proven to be true; gas prices do increase as the area increases in wealth. 
+
+#C) Gas stations at stoplights charge more
+```{r, echo=FALSE, message=FALSE}
+options(scipen = 999)
+mean(Price~Stoplight, data=gas)
+boot_stop = do(10000)*diffmean(Price~Stoplight, data=mosaic::resample(gas))
+confint(boot_stop, level = 0.95)
+```
+
+Theory C states that gas stations at stoplights charge more. The difference in price of has between gas stations at stoplights and those that aren't is somewhere between -0.038 and 0.030, with 95% confidence. The average price of gas at stoplights is approximately 1.863 while the average price not at stoplights is 1.866, indicating that it is not true that gas stations at stoplights charge more (theory is false). Additionally, since 0 is within the confidence interval, it can be deemed that it is statistically insignificant.
+
+#D) Gas stations with direct highway access charge more
+```{r, echo=FALSE, message=FALSE}
+options(scipen = 999)
+mean(Price~Highway, data=gas)
+boot_highway = do(10000)*diffmean(Price~Highway, data=mosaic::resample(gas))
+confint(boot_highway, level = 0.95)
+```
+
+Theory D states that gas stations with direct highway access charge more. The difference in price between gas stations on and off the highway is somewhere between 0.009 and 0.082, with 95% confidence. The average price of gas at station with direct highway access is around 1.9 while the average price of those who don't have direct access is 1.85, concluding that the theory is true. Since 0 is not included in the calculated confidence interval, it can be said that it is statistically significant. 
+
+#E) Shell charges more than all other non-Shell brands
+```{r, echo=FALSE,message=FALSE}
+options(scipen = 999)
+
+gas_brand = gas %>%
+  mutate(shellOrNot = ifelse(Brand == "Shell",yes= "Y", no = "N"))
+
+boot_brand = do(10000)*diffmean(Price~shellOrNot, data=mosaic::resample(gas_brand))
+confint(boot_brand, level = 0.95)
+
+```
+Theory E states that Shell charges more than all other non-Shell brands. The difference in price between Shell gas stations and non-Shell gas stations is somewhere between -0.009 and 0.06, with 95% confidence. Since 0 is evidently within the confidence interval, it is concluded that it's statistically insignificant. Given all of the calculated evidence and information, it is deemed that this theory is false. 
+
+
+#Problem 2 (part A): Compute a 95% bootstrap confidence interval for the average mileage of 2011 S-Class 63 AMGs that were hitting the used-car market when this data was collected. 
+```{r, echo=FALSE,message=FALSE}
+sclass <- class %>%
+  filter(year==2011, trim=="63 AMG")
+boot_class = do(10000)*mean(~mileage, data=mosaic::resample(sclass))
+confint(boot_class, level=0.95)
+
+```
+The average mileage of 2011 cars with a trim of 63 AMG that were hitting the used-car market is somewhere between 26235.92 and 31774.27 miles, with 95% confidence. 
+
+#Problem 2 (part B): Compute a 95% bootstrap confidence interval for the proportion of all 2014 S-Class 550s that were painted black. 
+```{r, echo=FALSE, message=FALSE}
+carclass <- class %>%
+  filter(year==2014, trim=="550")%>%
+  mutate(isBlack=ifelse(color=="Black",yes=TRUE,no=FALSE))
+
+boot_carclass=do(10000)*prop(~mileage,data=mosaic::resample(carclass))
+confint(boot_carclass, level=0.95)
+```
+The proportion of 2014 S-Class 550s that were painted black is somewhere between 0.0176 and 0.0283, with 95% confidence. 
+
+#Problem 3 (part A): Construct a 95% confidence interval for the difference in mean viewer response to the Q1_Happy question for these two shows. Is there evidence that one show consistently produces a higher mean Q1_Happy response among viewers?
+```{r, echo=FALSE,message=FALSE}
+nbc <- pilot %>%
+  filter(Show=="Living with Ed"|Show=="My Name is Earl")
+
+happy_mean <- do(10000)*nbc %>%
+  group_by(Show)%>%
+  summarize(diff_mean = mean(Q1_Happy))
+confint(happy_mean$diff_mean, level=0.95)
+ 
+```
+
+Question: The question asked is if there is evidence that one show consistently produces a higher mean Q1_Happy response among viewers. 
+
+Approach: I took the approach of filtering a large dataset to only depict the data for two shows: Living with Ed and My Name is Earl. I bootstrapped 10,000 samples of the average difference of Q1_Happy results for the 2 shows. A 95% confidence interval was then constructed to receive the given interval. 
+
+Results: The difference in mean between the Q1_Happy responses from the two shows is between 3.77 and 3.92 viewers, with 95% confidence. The confidence interval does not include 0, implying that the difference in mean responses is statistically significant at the 95% confidence level.  
+
+Conclusion:The evidence indicates that the show with the higher average Q1_Happy response is likely to produce a high level of happiness among the viewers. Since the difference in mean is positive, it can be concluded that the show My Name Is Earl has a higher average Q1_Happy response compared the Living with Ed. 
+
+
+#Problem 3 (part B): Construct a 95% confidence interval for the difference in mean viewer response to the Q1_Annoyed question for these two shows. Is there evidence that one show consistently produces a higher mean Q1_Annoyed response among viewers?
+```{r, echo=FALSE, message=FALSE}
+nbc_annoy <- pilot %>%
+  filter(Show=="The Biggest Loser"|Show=="The Apprentice: Los Angeles")
+
+annoy_mean <- do(10000)*nbc_annoy %>%
+  group_by(Show)%>%
+  summarize(diff_mean = mean(Q1_Annoyed))
+confint(annoy_mean$diff_mean, level=0.95)
+```
+
+Question: The question asked is which show made people feel more annoyed and if there was evidence that one show produced a higher mean Q1_Annoyed response among viewers. 
+
+Approach: I filtered a large dataset to only show information about 2 shows: The Biggest Loser and The Apprentice: Los Angeles. I then began to bootstrap 10,000 samples of the average difference of Q1_Annoyed results for the shows. Finally, I found the confidence interval at a level of 95% and began to analyze the data. 
+
+Results: The difference in mean between the Q1_Annoyed responses from the two shows is between 2.036 and 2.307, with 95% confidence. The interval does not include 0, implying that the difference in average responses for Q1_Annoyed is statistically significant at the 95% level. 
+
+Conclusion: Since we concluded that the results are statistically significant and 0 is not included in the confidence interval, we can say that The Apprentice: Los Angeles has a higher average Q1_Annoyed response, meaning that it made people feel more annoyed.
+
+#Problem 3 (part C): What proportion of American TV watchers would we expect to give a response of 4 or greater to the “Q2_Confusing” question? 
+```{r, echo=FALSE,message=FALSE}
+nbc_confusing <- pilot %>%
+  filter(Show=="Dancing with the Stars")
+
+nbc_confusing <- mutate(nbc_confusing, confusing_rating = ifelse(Q2_Confusing < 4, "Yes", "No"))
+
+boot_confusing=do(10000)*prop(~confusing_rating,data=mosaic::resample(nbc_confusing))
+
+confint(boot_confusing, level=0.95)
+```
+Question: The question asks what proportion of American TV watchers would we expect to give a response of 4 or greater to the Q2_Confusing question. 
+
+Approach: I filtered a dataset to only give information and data about the show "Dancing with the Stars." I then classified responses as a "Yes" or a "No" based on whether people responses with less than a 4 or greater than a 4. Once again, I bootstrapped 10,000 samples of the proportion of Q1_Confusing responses received, in which I then calculated a confidence interval at the 95% level. 
+
+Results: Based on the concluded evidence, we can say that we are 95% confident that the proportion of American TV watchers who found the show confusing (responding with less than a 4) lies within the interval of 0.038 and 0.116.
+
+Conclusion: Since both the lower and upper bounds are greater than 0 in the interval, we conclude that a noticeable proportion of viewers found the show to be confusing. Additionally, 0 is not within the confidence interval, meaning it is statistically significant. 
+
+
+#Problem 4: Assess the evidence for whether the revenue ratio is the same in the treatment and control groups, or whether instead the data favors the idea that paid search advertising on Google creates extra revenue for EBay.
+```{r, echo=FALSE, message=FALSE}
+ebay_0 <- ebay %>%
+  filter(adwords_pause=="0")
+
+ebay_1 <- ebay %>%
+  filter(adwords_pause=="1")
+
+prop(ebay_0$rev_ratio)
+prop(ebay_1$rev_ratio)
+
+boot_ebay=do(10000)*diffprop(rev_ratio~adwords_pause,data=mosaic::resample(ebay))
+confint(boot_ebay, level=0.95)
+```
+
+Question: Is the revenue ratio the same for the treatment and control groups or does the data favor the idea that paid search advertising on Google creates extra revenue for EBay. 
+
+Approach: I filtered the dataset into 2 separate datasets where adwords_pause is 0 and 1. I then bootstrapped 10,000 samples of the difference in revenue ratio between the control and treatment DMAs. Finally, I calculated a confidence interval at the 95% level. 
+
+Results: The difference in proportion between treatment and control DMA's is between -0.013 and 0.063, with 95% confidence. The interval does include 0, implying that it is statistically insigificiant. 
+
+Conclusion: Given the evidence calculated and previous information, it can be concluded that the data and results favor the concept that paid search advertising generate extra revenue for EBay. 
+
